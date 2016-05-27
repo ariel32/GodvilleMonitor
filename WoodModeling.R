@@ -1,7 +1,7 @@
 d = dir("Dungeons/", pattern = "*.csv")
 
 for(x in d){
-  data = read.csv(paste0("Dungeons/", x), sep = ";")
+  data = read.csv(paste0("Dungeons/", x), sep = ";", encoding = "UTF-8")
   god = gsub(pattern = "%20", replacement = " ", x = unlist(strsplit(x, ".d.csv")))
   data = cbind(god, data)
   write.table(data, "DungeonsDB.csv", sep = ";", col.names = F, append = T, row.names = F)
