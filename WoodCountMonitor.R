@@ -5,6 +5,7 @@ monitor <- function(god) {
   js = fromJSON(sprintf("http://godville.net/gods/api/%s.json", god))
   html = readHTMLTable(sprintf("http://godville.net/gods/%s",god), header = F, stringsAsFactors = FALSE)
   Sys.sleep(5)
+  godname         = js$godname
   time            = as.numeric(as.POSIXct(Sys.time()))
   gold_approx     = js$gold_approx
   level           = js$level
@@ -25,7 +26,7 @@ monitor <- function(god) {
   p.savings       = html$panteons$V2[html$panteons$V1 == "Зажиточности"]
   p.alignment     = ifelse(length(html$panteons$V2[html$panteons$V1 == "Созидания" | html$panteons$V1 == "Разрушения"]) == 0, 0, html$panteons$V2[html$panteons$V1 == "Созидания" | html$panteons$V1 == "Разрушения"])
   
-  a <- cbind(god,time,gold_approx,level,alignment,wood_cnt,health,pet_level,age,monsters_killed,
+  a <- cbind(godname,time,gold_approx,level,alignment,wood_cnt,health,pet_level,age,monsters_killed,
     deaths,arena_score,p.might,p.templehood,p.gladiatorship,p.mastery,p.taming,p.survival,p.savings,p.alignment)
   
   if(file.exists("DungeonsDB.csv")) {
