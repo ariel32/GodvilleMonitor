@@ -1,5 +1,5 @@
 library("jsonlite"); library("XML")
-setwd("/home/capsula/work/_archive/GodvilleMonitor/Dungeons")
+setwd("/home/capsula/work/_archive/GodvilleMonitor")
 
 monitor <- function(god) {
   js = fromJSON(sprintf("http://godville.net/gods/api/%s.json", god))
@@ -25,18 +25,16 @@ monitor <- function(god) {
   p.savings       = html$panteons$V2[html$panteons$V1 == "Зажиточности"]
   p.alignment     = ifelse(length(html$panteons$V2[html$panteons$V1 == "Созидания" | html$panteons$V1 == "Разрушения"]) == 0, 0, html$panteons$V2[html$panteons$V1 == "Созидания" | html$panteons$V1 == "Разрушения"])
   
-  a <- cbind(time,gold_approx,level,alignment,wood_cnt,health,pet_level,age,monsters_killed,
+  a <- cbind(god,time,gold_approx,level,alignment,wood_cnt,health,pet_level,age,monsters_killed,
     deaths,arena_score,p.might,p.templehood,p.gladiatorship,p.mastery,p.taming,p.survival,p.savings,p.alignment)
   
-  if(file.exists(sprintf("%s.d.csv", god))) {
-    write.table(a, sprintf("%s.d.csv", god),
-                sep = ";", col.names = F, append = T, row.names = F)
+  if(file.exists("DungeonsDB.csv")) {
+    write.table(a, "DungeonsDB.csv", sep = ";", col.names = F, append = T, row.names = F)
   } else {
-    write.table(a, sprintf("%s.d.csv", god),
-                sep = ";", col.names = T, row.names = F)
+    write.table(a, "DungeonsDB.csv", sep = ";", col.names = T, row.names = F)
   }
 }
 
 ### god names for monitoring
-load("../god.names")
+load("god.names")
 sapply(god.names, monitor)
