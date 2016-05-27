@@ -8,7 +8,6 @@ for(x in d){
 }
 
 
-
 coeff <- sapply(d, FUN = function(x) {
   data = read.csv(paste0("Dungeons/", x), sep = ";")
   as.numeric(lm(wood_cnt ~ time, data = data)$coefficients[2])
