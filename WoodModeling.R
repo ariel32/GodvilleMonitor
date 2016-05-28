@@ -16,11 +16,14 @@ res$woods[res$name=="Capsula"]
 capsula.d = read.csv("capsula2.csv", sep = ";")
 capsula.woods = round(as.numeric(lm(wood_cnt ~ time, data = capsula.d)$coefficients[2])*60*60*24,2)
 
-# получаем золото
+# получаем золото и перезаписываем БД
+#####
 gold_approx[grep("ни одного", d$gold_approx)] <- 0
 gold_approx[grep("дес", d$gold_approx)] <- 10
 gold_approx[grep("сот", d$gold_approx)] <- 100
 gold_approx[grep("тыс", d$gold_approx)] <- 1000
 i <- which(!is.na(as.numeric(gsub("[^0-9]", "", d$gold_approx))))
 gold_approx[i] <- gold_approx[i]*as.numeric(gsub("[^0-9]", "", d$gold_approx))[i]
-
+d$gold_approx <- gold_approx
+write.table(d, "DungeonsDB.csv", sep = ";", col.names = T, row.names = F)
+#####

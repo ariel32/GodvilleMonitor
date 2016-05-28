@@ -8,7 +8,13 @@ monitor <- function(god) {
   if(!is.null(html$characteristics) & !is.null(html$panteons)) {
     godname         = js$godname
     time            = as.numeric(as.POSIXct(Sys.time()))
-    gold_approx     = js$gold_approx
+    # gold conversion
+    k = as.numeric(gsub("[^0-9]", "", js$gold_approx))
+    if(is.na(k)) k = 1
+    if(length(grep("ни одного", js$gold_approx))) gold_approx <- 0
+    if(length(grep("дес", js$gold_approx))) gold_approx <- k*10
+    if(length(grep("сот", js$gold_approx))) gold_approx <- k*100
+    if(length(grep("тыс", js$gold_approx))) gold_approx <- k*1000
     level           = js$level
     alignment       = js$alignment
     wood_cnt        = js$wood_cnt
