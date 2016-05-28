@@ -22,6 +22,13 @@ monitor <- function(god) {
     pet_level       = ifelse(is.null(js$pet$pet_level), "NA", js$pet$pet_level)
     age             = html$characteristics$V2[2]
     monsters_killed = html$characteristics$V2[6]
+    # killed monsters conversion
+    k = as.numeric(gsub("[^0-9]", "", monsters_killed))
+    if(is.na(k)) k = 1
+    if(length(grep("ни одного", monsters_killed))) monsters_killed <- 0
+    if(length(grep("дес", monsters_killed))) monsters_killed <- k*10
+    if(length(grep("сот", monsters_killed))) monsters_killed <- k*100
+    if(length(grep("тыс", monsters_killed))) monsters_killed <- k*1000
     deaths          = html$characteristics$V2[7]
     arena.wins      = strsplit(html$characteristics$V2[8], split = " / ")[[1]][1]
     arena.loses     = strsplit(html$characteristics$V2[8], split = " / ")[[1]][2]
