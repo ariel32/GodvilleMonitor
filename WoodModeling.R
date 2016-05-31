@@ -1,5 +1,6 @@
 d = read.csv("DungeonsDB.csv", sep = ";", stringsAsFactor = F, encoding = "UTF-8")
 godnames = unique(d$godname)
+#save(godnames, file = "godnames")
 
 coeff <- sapply(godnames, FUN = function(x) {
   data = d[d$godname==x,]
@@ -15,7 +16,7 @@ head(res)
 res$woods[res$name=="Capsula"]
 capsula.d = read.csv("capsula2.csv", sep = ";")
 capsula.woods = round(as.numeric(lm(wood_cnt ~ time, data = capsula.d)$coefficients[2])*60*60*24,2)
-
+plot(wood_cnt ~ time, data = d[d$godname=="Capsula",])
 # получаем цифробуквенные данные и перезаписываем БД
 #####
 monsters_killed[grep("ни одного", d$monsters_killed)] <- 0
