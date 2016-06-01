@@ -16,7 +16,10 @@ head(res)
 res$woods[res$name=="Capsula"]
 capsula.d = read.csv("capsula2.csv", sep = ";")
 capsula.woods = round(as.numeric(lm(wood_cnt ~ time, data = capsula.d)$coefficients[2])*60*60*24,2)
-plot(wood_cnt ~ time, data = d[d$godname=="Capsula",])
+plot(wood_cnt ~ time, data = d[d$godname=="Изерка",], type = "l")
+
+
+
 # получаем цифробуквенные данные и перезаписываем БД
 #####
 monsters_killed[grep("ни одного", d$monsters_killed)] <- 0

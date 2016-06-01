@@ -66,7 +66,7 @@ monitor <- function(god) {
         write.table(a, "DungeonsDB.csv", sep = ";", col.names = T, row.names = F)
       }
     }
-  } else { print("Status not OK")}
+  } else { print("Status not OK"); write.table(data.frame(time = Sys.time(), godname = god, js.status = js$status_code, html.status = html$status_code), file = "log.csv", sep = ";", row.names = F, append = T, col.names = F)}
 }
 
 ### god names for monitoring
