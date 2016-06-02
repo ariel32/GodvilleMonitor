@@ -72,3 +72,8 @@ monitor <- function(god) {
 ### god names for monitoring
 load("godnames")
 sapply(godnames, monitor)
+#### ОБРАБОТКА ОШИБОК
+err = read.csv("log.csv", sep = ";", header = F, stringsAsFactors = F)
+names(err) <- c("time", "godname", "js.code", "html.code")
+file.remove("log.csv")
+sapply(err$godname, monitor)
