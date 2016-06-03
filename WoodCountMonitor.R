@@ -7,6 +7,8 @@ monitor <- function(god) {
   html = GET(sprintf("http://godville.net/gods/%s",god))
   if (js$status_code == 200 & html$status_code == 200) {
     js <- content(js)
+    # парсим ачивки
+    if(length(readHTMLList(htmlParse(html))) > 1) a <- gsub(pattern = "\n\t\t\t\t\n\t\t\t\t\t\n\t\t\t\t\t\t", " ", readHTMLList(htmlParse(html))[[2]])
     html = readHTMLTable(htmlParse(html), header = F, stringsAsFactors = FALSE, encoding = "UTF-8")
     if(!is.null(html$characteristics) & !is.null(html$panteons)) {
       godname         = js$godname
@@ -56,10 +58,33 @@ monitor <- function(god) {
       p.survival      = html$panteons$V2[html$panteons$V1 == "Живучести"]
       p.savings       = html$panteons$V2[html$panteons$V1 == "Зажиточности"]
       p.alignment     = ifelse(length(html$panteons$V2[html$panteons$V1 == "Созидания" | html$panteons$V1 == "Разрушения"]) == 0, 0, html$panteons$V2[html$panteons$V1 == "Созидания" | html$panteons$V1 == "Разрушения"])
-      
+      ##### achievments
+      a <- data.frame(achievment = sapply(strsplit(a, ","), "[[", 1), value = as.numeric(gsub("[^0-9]", "", sapply(strsplit(a, ","), "[", 2))), stringsAsFactors = F)
+      a$value[grep("Заслуженный", a$achievment)] <- 0
+      a$achievment <- gsub("Заслуженный ", "", a$achievment)
+      a.lamb        <- a$value[a$achievment=="Агнец"]
+      a.imp         <- a$value[a$achievment=="Чертяка"]
+      a.martyr      <- a$value[a$achievment=="Мученик"]
+      a.favorite    <- a$value[a$achievment=="Фаворит"]
+      a.scoffer     <- a$value[a$achievment=="Безбожник"]
+      a.warrior     <- a$value[a$achievment=="Вояка"]
+      a.maniac      <- a$value[a$achievment=="Маньяк"]
+      a.champion    <- a$value[a$achievment=="Чемпион"]
+      a.tutor       <- a$value[a$achievment=="Наставник"]
+      a.hunter      <- a$value[a$achievment=="Охотник"]
+      a.plunderer   <- a$value[a$achievment=="Расхититель"]
+      a.careerist   <- a$value[a$achievment=="Карьерист"]
+      a.breeder     <- a$value[a$achievment=="Заводчик"]
+      a.architect   <- a$value[a$achievment=="Зодчий"]
+      a.shipbuilder <- a$value[a$achievment=="Корабел"]
+      a.sailor      <- a$value[a$achievment=="Мореход"]
+      a.fowler      <- a$value[a$achievment=="Ловец"]
+      achievment <- sapply(list(a.lamb,a.imp,a.martyr,a.favorite,a.scoffer,a.warrior,a.maniac,a.champion,a.tutor,a.hunter,a.plunderer,a.careerist,a.breeder,a.architect,a.shipbuilder,a.sailor,a.fowler), function(x) ifelse(length(x) > 0,x,4))
+      names(achievment) <- c("a.lamb","a.imp","a.martyr","a.favorite","a.scoffer","a.warrior","a.maniac","a.champion","a.tutor","a.hunter","a.plunderer","a.careerist","a.breeder","a.architect","a.shipbuilder","a.sailor","a.fowler")
+      achievment <- as.data.frame(t(achievment))
       a <- cbind(godname,time,gold_approx,level,alignment,wood_cnt,health,pet_level,age,monsters_killed,
                  deaths,arena.wins,arena.loses,p.might,p.templehood,p.gladiatorship,p.mastery,p.taming,p.survival,p.savings,p.alignment)
-      
+      a <- cbind(a,achievment)
       if(file.exists("DungeonsDB.csv")) {
         write.table(a, "DungeonsDB.csv", sep = ";", col.names = F, append = T, row.names = F)
       } else {
