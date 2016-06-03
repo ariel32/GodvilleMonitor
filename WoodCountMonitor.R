@@ -17,6 +17,7 @@ monitor <- function(god) {
       k = as.numeric(gsub("[^0-9]", "", js$gold_approx))
       if(is.na(k)) k = 1
       if(length(grep("ни одного", js$gold_approx))) gold_approx <- 0
+      if(length(grep("неизвестно", js$gold_approx))) gold_approx <- NA
       if(length(grep("дес", js$gold_approx))) gold_approx <- k*10
       if(length(grep("сот", js$gold_approx))) gold_approx <- k*100
       if(length(grep("тыс", js$gold_approx))) gold_approx <- k*1000
