@@ -23,6 +23,7 @@ monitor <- function(god) {
       if(length(grep("тыс", js$gold_approx))) gold_approx <- k*1000
       if(length(grep("несколько", js$gold_approx))) gold_approx <- 5
       level           = js$level
+      equip.level     = median(as.numeric(html$equipment$V3), na.rm = T)
       if(js$alignment=="нейтральный") alignment <- 0
       if(js$alignment=="недовольный") alignment <- -1
       if(js$alignment=="озлобленный") alignment <- -2
