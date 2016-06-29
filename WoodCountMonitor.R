@@ -84,7 +84,7 @@ monitor <- function(god) {
       achievment <- sapply(list(a.lamb,a.imp,a.martyr,a.favorite,a.scoffer,a.warrior,a.maniac,a.champion,a.tutor,a.hunter,a.plunderer,a.careerist,a.breeder,a.architect,a.shipbuilder,a.sailor,a.fowler), function(x) ifelse(length(x) > 0,x,4))
       names(achievment) <- c("a.lamb","a.imp","a.martyr","a.favorite","a.scoffer","a.warrior","a.maniac","a.champion","a.tutor","a.hunter","a.plunderer","a.careerist","a.breeder","a.architect","a.shipbuilder","a.sailor","a.fowler")
       achievment <- as.data.frame(t(achievment))
-      a <- cbind(godname,time,gold_approx,level,alignment,wood_cnt,health,pet_level,age,monsters_killed,
+      a <- cbind(godname,time,gold_approx,level,equip.level,alignment,wood_cnt,health,pet_level,age,monsters_killed,
                  deaths,arena.wins,arena.loses,p.might,p.templehood,p.gladiatorship,p.mastery,p.taming,p.survival,p.savings,p.alignment)
       a <- cbind(a,achievment)
       if(file.exists("DungeonsDB.csv")) {
@@ -100,7 +100,8 @@ monitor <- function(god) {
 load("godnames")
 sapply(godnames, monitor)
 #### ОБРАБОТКА ОШИБОК
-err = read.csv("log.csv", sep = ";", header = F, stringsAsFactors = F)
-names(err) <- c("time", "godname", "js.code", "html.code")
-file.remove("log.csv")
-sapply(err$godname, monitor)
+if(file.exists("log.csv")) {
+  err = read.csv("log.csv", sep = ";", header = F, stringsAsFactors = F)
+  names(err) <- c("time", "godname", "js.code", "html.code")
+  file.remove("log.csv")
+  sapply(err$godname, monitor) }

@@ -20,6 +20,7 @@ res$arena.loses <- sapply(res$name, function(x) FUN = median(d$arena.loses[d$god
 res$arena.rate <- sapply(res$name, function(x) FUN = median(d$arena.wins[d$godname==x])/median(d$arena.loses[d$godname==x]))
 res$gold <- sapply(res$name, function(x) FUN = median(d$gold_approx[d$godname==x]))
 res$level <- sapply(res$name, function(x) FUN = median(d$level[d$godname==x]))
+res$equip.rate    <- sapply(res$name, function(x) FUN = median(d$equip.level[d$godname==x], na.rm = T)/median(d$level[d$godname==x], na.rm = T))
 res$might         <- sapply(res$name, function(x) FUN = median(d$p.might[d$godname==x]))
 res$templehood    <- sapply(res$name, function(x) FUN = median(d$p.templehood[d$godname==x]))
 res$gladiatorship <- sapply(res$name, function(x) FUN = median(d$p.gladiatorship[d$godname==x]))
@@ -46,11 +47,13 @@ res$a.shipbuilder <- sapply(res$name, function(x) FUN = as.numeric(median(d$a.sh
 res$a.sailor      <- sapply(res$name, function(x) FUN = as.numeric(median(d$a.sailor[d$godname==x], na.rm = T)))
 #res$a.fowler      <- sapply(res$name, function(x) FUN = as.numeric(median(d$a.fowler[d$godname==x], na.rm = T)))
 
-res <- res[complete.cases(res),]
+#res <- res[complete.cases(res),]
 res <- res[-which(is.nan(res$arena.rate) | is.infinite(res$arena.rate)),]
-l <- glm(active ~ alignment+arena.rate+gold+level+might+templehood+gladiatorship+mastery+taming+survival+savings+align.r+a.lamb+a.imp+a.martyr+a.favorite+a.scoffer+a.warrior+a.maniac+a.champion+a.tutor+a.hunter+a.plunderer+a.careerist+a.breeder+a.shipbuilder+a.sailor, data = res, family=binomial(logit))
-summary(l)
-predict.glm(l, res[res$name=="Capsula",], type = "response")
+cor.test(res$equip.rate,res$woods, method = "sp")
+
+m1 <- glm(active ~ alignment+arena.rate+gold+level+equip.rate+might+templehood+gladiatorship+mastery+taming+survival+savings+align.r+a.lamb+a.imp+a.martyr+a.favorite+a.scoffer+a.warrior+a.maniac+a.champion+a.tutor+a.hunter+a.plunderer+a.careerist+a.breeder+a.shipbuilder+a.sailor, data = res, family=binomial(logit))
+summary(m1)
+predict.glm(m1, res[res$name=="Capsula",], type = "response")
 
 #####
 res$woods[res$name=="Capsula"]
