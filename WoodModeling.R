@@ -49,7 +49,8 @@ res$a.sailor      <- sapply(res$name, function(x) FUN = as.numeric(median(d$a.sa
 
 #res <- res[complete.cases(res),]
 res <- res[-which(is.nan(res$arena.rate) | is.infinite(res$arena.rate)),]
-<<<<<<< HEAD
+
+cor.test(res$equip.rate,res$woods, method = "sp")
 
 l <- glm(active ~ alignment+arena.rate+gold+level+might+templehood+gladiatorship+mastery+taming+survival+savings+align.r+a.lamb+a.imp+a.martyr+a.favorite+a.scoffer+a.warrior+a.maniac+a.champion+a.tutor+a.hunter+a.plunderer+a.careerist+a.breeder+a.shipbuilder+a.sailor, data = res, family=binomial(logit))
 summary(l)
@@ -61,7 +62,7 @@ library(caret); library(e1071)
 library(ggplot2)
 
 res$active <- as.factor(res$active)
-full.formula <- as.formula(active ~ alignment+arena.rate+gold+level+might+templehood+gladiatorship+mastery+taming+survival+savings+align.r+a.lamb+a.imp+a.martyr+a.favorite+a.scoffer+a.warrior+a.maniac+a.champion+a.tutor+a.hunter+a.plunderer+a.careerist+a.breeder+a.shipbuilder+a.sailor)
+#full.formula <- as.formula(active ~ alignment+arena.rate+gold+level+might+templehood+gladiatorship+mastery+taming+survival+savings+align.r+a.lamb+a.imp+a.martyr+a.favorite+a.scoffer+a.warrior+a.maniac+a.champion+a.tutor+a.hunter+a.plunderer+a.careerist+a.breeder+a.shipbuilder+a.sailor)
 full.formula <- as.formula(active ~ a.lamb+a.imp+a.martyr+a.favorite+a.scoffer+a.warrior+a.maniac+a.champion+a.tutor+a.hunter+a.plunderer+a.careerist+a.breeder+a.shipbuilder+a.sailor)
 g1 <- glmulti(full.formula,
               data = res,level = 2, method = "g", crit = "aic", confsetsize = 5, plotty = F, report = F, maxsize = 500,
@@ -107,14 +108,6 @@ ctrl <- trainControl(method = "repeatedcv", number = 10, savePredictions = TRUE)
 mod_fit <- train(t.formula,  data=res, method="glm", family="binomial", trControl = ctrl, tuneLength = 5)
 pred = predict(mod_fit, newdata=res) #for good testing needed replace d for testing set :(
 confusionMatrix(data=pred, res$active)
-
-=======
-cor.test(res$equip.rate,res$woods, method = "sp")
-
-m1 <- glm(active ~ alignment+arena.rate+gold+level+equip.rate+might+templehood+gladiatorship+mastery+taming+survival+savings+align.r+a.lamb+a.imp+a.martyr+a.favorite+a.scoffer+a.warrior+a.maniac+a.champion+a.tutor+a.hunter+a.plunderer+a.careerist+a.breeder+a.shipbuilder+a.sailor, data = res, family=binomial(logit))
-summary(m1)
-predict.glm(m1, res[res$name=="Capsula",], type = "response")
->>>>>>> 187db610885bf0ad4ae17a5a4fcdf0146078d97d
 
 #####
 res$woods[res$name=="Capsula"]
