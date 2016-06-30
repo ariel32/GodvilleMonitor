@@ -1,4 +1,4 @@
-d = read.csv("DungeonsDB.csv", sep = ";", stringsAsFactor = F, encoding = "UTF-8")
+d = read.csv("DungeonsDB.csv", sep = ";", stringsAsFactor = F)
 godnames = unique(d$godname)
 #save(godnames, file = "godnames")
 
@@ -51,17 +51,18 @@ res$a.sailor      <- sapply(res$name, function(x) FUN = as.numeric(median(d$a.sa
 res <- res[-which(is.nan(res$arena.rate) | is.infinite(res$arena.rate)),]
 
 cor.test(res$equip.rate,res$woods, method = "sp")
-
-l <- glm(active ~ alignment+arena.rate+gold+level+might+templehood+gladiatorship+mastery+taming+survival+savings+align.r+a.lamb+a.imp+a.martyr+a.favorite+a.scoffer+a.warrior+a.maniac+a.champion+a.tutor+a.hunter+a.plunderer+a.careerist+a.breeder+a.shipbuilder+a.sailor, data = res, family=binomial(logit))
-summary(l)
-predict.glm(l, res[res$name=="Capsula",], type = "response")
+################
+# ordinal logistic regression
+m1 <- glm(active ~ alignment+arena.rate+gold+level+might+templehood+gladiatorship+mastery+taming+survival+savings+align.r+a.lamb+a.imp+a.martyr+a.favorite+a.scoffer+a.warrior+a.maniac+a.champion+a.tutor+a.hunter+a.plunderer+a.careerist+a.breeder+a.shipbuilder+a.sailor, data = res, family=binomial(logit))
+summary(m1)
+predict.glm(m1, res[res$name=="Capsula",], type = "response")
 ################ GLMULTI
 library(glmulti);library(ROCR)
 library(MKmisc)
 library(caret); library(e1071)
-library(ggplot2)
+library(ggplot2); library(DAAG)
 
-res$active <- as.factor(res$active)
+#res$active <- as.factor(res$active)
 #full.formula <- as.formula(active ~ alignment+arena.rate+gold+level+might+templehood+gladiatorship+mastery+taming+survival+savings+align.r+a.lamb+a.imp+a.martyr+a.favorite+a.scoffer+a.warrior+a.maniac+a.champion+a.tutor+a.hunter+a.plunderer+a.careerist+a.breeder+a.shipbuilder+a.sailor)
 full.formula <- as.formula(active ~ a.lamb+a.imp+a.martyr+a.favorite+a.scoffer+a.warrior+a.maniac+a.champion+a.tutor+a.hunter+a.plunderer+a.careerist+a.breeder+a.shipbuilder+a.sailor)
 g1 <- glmulti(full.formula,
@@ -73,10 +74,12 @@ t.formula <- g1@formulas[[1]]
 m1 <- glm(t.formula, data = res, family = binomial(link=logit))
 summary(m1)
 
+#################
 # проверка модели
 HLgof.test(fit = m1$fitted.values, obs = res$active)$C
 # ROC analysis
 predicted <- predict(m1, res, type="response")
+predicted[is.na(predicted)] <- 0
 prob <- prediction(predicted, res$active)
 tprfpr <- performance(prob, "tpr", "fpr")
 tpr <- unlist(slot(tprfpr, "y.values"))
