@@ -48,9 +48,64 @@ res$a.sailor      <- sapply(res$name, function(x) FUN = as.numeric(median(d$a.sa
 
 res <- res[complete.cases(res),]
 res <- res[-which(is.nan(res$arena.rate) | is.infinite(res$arena.rate)),]
+
 l <- glm(active ~ alignment+arena.rate+gold+level+might+templehood+gladiatorship+mastery+taming+survival+savings+align.r+a.lamb+a.imp+a.martyr+a.favorite+a.scoffer+a.warrior+a.maniac+a.champion+a.tutor+a.hunter+a.plunderer+a.careerist+a.breeder+a.shipbuilder+a.sailor, data = res, family=binomial(logit))
 summary(l)
 predict.glm(l, res[res$name=="Capsula",], type = "response")
+################ GLMULTI
+library(glmulti);library(ROCR)
+library(MKmisc)
+library(caret); library(e1071)
+library(ggplot2)
+
+res$active <- as.factor(res$active)
+full.formula <- as.formula(active ~ alignment+arena.rate+gold+level+might+templehood+gladiatorship+mastery+taming+survival+savings+align.r+a.lamb+a.imp+a.martyr+a.favorite+a.scoffer+a.warrior+a.maniac+a.champion+a.tutor+a.hunter+a.plunderer+a.careerist+a.breeder+a.shipbuilder+a.sailor)
+full.formula <- as.formula(active ~ a.lamb+a.imp+a.martyr+a.favorite+a.scoffer+a.warrior+a.maniac+a.champion+a.tutor+a.hunter+a.plunderer+a.careerist+a.breeder+a.shipbuilder+a.sailor)
+g1 <- glmulti(full.formula,
+              data = res,level = 2, method = "g", crit = "aic", confsetsize = 5, plotty = F, report = F, maxsize = 500,
+              fitfunction = "glm", family = binomial(link = logit))
+# look at the formulas
+g1@formulas
+t.formula <- g1@formulas[[1]]
+m1 <- glm(t.formula, data = res, family = binomial(link=logit))
+summary(m1)
+
+# проверка модели
+HLgof.test(fit = m1$fitted.values, obs = res$active)$C
+# ROC analysis
+predicted <- predict(m1, res, type="response")
+prob <- prediction(predicted, res$active)
+tprfpr <- performance(prob, "tpr", "fpr")
+tpr <- unlist(slot(tprfpr, "y.values"))
+fpr <- unlist(slot(tprfpr, "x.values"))
+roc <- data.frame(tpr, fpr)
+cutoffs <- data.frame(cut=tprfpr@alpha.values[[1]], fpr=tprfpr@x.values[[1]], tpr=tprfpr@y.values[[1]])
+acc.perf = performance(prob, measure = "acc"); plot(acc.perf)
+ind = which.max( slot(acc.perf, "y.values")[[1]] )
+acc = slot(acc.perf, "y.values")[[1]][ind]
+cutoff = slot(acc.perf, "x.values")[[1]][ind]
+sp = performance(prob, measure = "spec"); se = performance(prob, measure = "sens")
+auc = performance(prob, measure = "auc"); f = performance(prob, measure = "f")
+print(c(accuracy=acc, f=f@y.values[[1]][ind], sp = sp@y.values[[1]][ind], se = se@y.values[[1]][ind], auc = auc@y.values[[1]][1], cutoff = cutoff))
+
+##### ggplot2
+ggplot(roc) + geom_line(aes(x = fpr, y = tpr), size = 1.8, color = "green") + 
+  geom_abline(intercept = 0, slope = 1, colour = "gray") +
+  ggtitle("ROC-curve for logistic model") +
+  ylab("Sensitivity") + 
+  xlab("1 - Specificity") +
+  theme(plot.title = element_text(size = rel(1.5)),
+        axis.title = element_text(size = rel(1.5)))
+
+# CV of models
+CVbinary(m1) # as optimal choosed first model
+
+##### k-fold
+ctrl <- trainControl(method = "repeatedcv", number = 10, savePredictions = TRUE)
+mod_fit <- train(t.formula,  data=res, method="glm", family="binomial", trControl = ctrl, tuneLength = 5)
+pred = predict(mod_fit, newdata=res) #for good testing needed replace d for testing set :(
+confusionMatrix(data=pred, res$active)
+
 
 #####
 res$woods[res$name=="Capsula"]
