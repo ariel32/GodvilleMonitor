@@ -50,9 +50,33 @@ res$a.sailor      <- sapply(res$name, function(x) FUN = as.numeric(median(d$a.sa
 #res <- res[complete.cases(res),]
 res <- res[-which(is.nan(res$arena.rate) | is.infinite(res$arena.rate)),]
 
-cor.test(res$equip.rate,res$woods, method = "sp")
 ################
 # ordinal logistic regression
+m1 <- glm(as.formula(paste0("active ~ ", paste(names(res)[4:33], sep = " ", collapse = "+"))), data = res, family=binomial(logit))
+summary(m1)
+
+library(caret)
+vi <- varImp(m1)
+vi <- rownames(vi)[order(-vi)][1:10]
+
+library(glmulti)
+full.formula <- as.formula(paste0("active ~ ", paste(vi, sep = " ", collapse = "+")))
+g1 <- glmulti(full.formula,
+              data = res,level = 2, method = "g", crit = "aic", confsetsize = 5, plotty = F, report = F, maxsize = 500,
+              fitfunction = "glm", family = binomial(link = logit))
+
+t.formula <- g1@formulas[[1]]
+m1 <- glm(t.formula, data = res, family = binomial(link=logit))
+summary(m1)
+predict.glm(m1, res[res$name=="Capsula",], type = "response")
+
+
+
+
+
+
+
+
 m1 <- glm(active ~ alignment+arena.rate+gold+level+might+templehood+gladiatorship+mastery+taming+survival+savings+align.r+a.lamb+a.imp+a.martyr+a.favorite+a.scoffer+a.warrior+a.maniac+a.champion+a.tutor+a.hunter+a.plunderer+a.careerist+a.breeder+a.shipbuilder+a.sailor, data = res, family=binomial(logit))
 summary(m1)
 predict.glm(m1, res[res$name=="Capsula",], type = "response")
