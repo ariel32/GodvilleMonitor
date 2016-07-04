@@ -1,7 +1,11 @@
 library("jsonlite"); library("XML"); library("httr")
 setwd("/home/capsula/work/_archive/GodvilleMonitor")
 
+<<<<<<< HEAD
+monitor <- function(god, query = FALSE) {
+=======
 monitor <- function(god, res.return = FALSE) {
+>>>>>>> 70a5e27038f318832b13faa2f5853d9bf2ca2689
   Sys.sleep(5); print(god)
   js = GET(sprintf("http://godville.net/gods/api/%s.json", god))
   html = GET(sprintf("http://godville.net/gods/%s",god))
@@ -87,7 +91,11 @@ monitor <- function(god, res.return = FALSE) {
       a <- cbind(godname,time,gold_approx,level,equip.level,alignment,wood_cnt,health,pet_level,age,monsters_killed,
                  deaths,arena.wins,arena.loses,p.might,p.templehood,p.gladiatorship,p.mastery,p.taming,p.survival,p.savings,p.alignment)
       a <- cbind(a,achievment)
+<<<<<<< HEAD
+      if(query == TRUE) return(a)
+=======
       if(res.return == TRUE) return(a)
+>>>>>>> 70a5e27038f318832b13faa2f5853d9bf2ca2689
       if(file.exists("DungeonsDB.csv")) {
         write.table(a, "DungeonsDB.csv", sep = ";", col.names = F, append = T, row.names = F)
       } else {
