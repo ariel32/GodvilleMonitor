@@ -69,6 +69,11 @@ param <- list("objective" = "binary:logistic",    # binary classification
               "min_child_weight" = 12  # minimum sum of instance weight needed in a child 
 )
 bst = xgboost(data = dm, params = param, nrounds = 80)
+xgb.plot.tree(feature_names = names(res[,4:33]),model = bst)
+
+importance_matrix <- xgb.importance(names(res[,4:33]), model = bst)
+xgb.plot.importance(importance_matrix)
+
 
 predict(bst, newdata = data.matrix(res[which(res$name=="Capsula"),4:33]))
 
