@@ -1,3 +1,5 @@
+############################ DATA TRANSFORMING AND PREPEARING
+#############################################################
 d = read.csv("DungeonsDB.csv", sep = ";", stringsAsFactor = F)
 godnames = unique(d$godname)
 #save(godnames, file = "godnames")
@@ -8,7 +10,7 @@ coeff <- sapply(godnames, FUN = function(x) {
   } )
 
 # переводим коэффициент наклона прямой в количество бревен
-res = data.frame(name = godnames, woods = round(as.numeric(coeff*60*60*24),2))
+res = data.frame(name = godnames, woods = round(as.numeric(coeff*60*60*24),2), stringsAsFactors = F)
 res <- res[order(-res$woods),]
 head(res)
 
@@ -47,8 +49,162 @@ res$a.shipbuilder <- sapply(res$name, function(x) FUN = as.numeric(median(d$a.sh
 res$a.sailor      <- sapply(res$name, function(x) FUN = as.numeric(median(d$a.sailor[d$godname==x], na.rm = T)))
 #res$a.fowler      <- sapply(res$name, function(x) FUN = as.numeric(median(d$a.fowler[d$godname==x], na.rm = T)))
 
-#res <- res[complete.cases(res),]
+
+############# DATA CLEANING
+res <- res[complete.cases(res),]
 res <- res[-which(is.nan(res$arena.rate) | is.infinite(res$arena.rate)),]
+
+########## XGBOOST
+library(xgboost); library(corrplot); library(Rtsne); library(ggplot2); library(caret)
+data <- res[,3:33]
+corrplot.mixed(cor(data[,2:31]), lower="circle", upper="color", tl.pos="lt", diag="n", order="hclust", hclust.method="complete")
+
+tsne = Rtsne(as.matrix(data), check_duplicates=FALSE, pca=TRUE, perplexity=30, theta=0.5, dims=2)
+embedding = as.data.frame(tsne$Y)
+embedding$Class = as.factor(data$active)
+g = ggplot(embedding, aes(x=V1, y=V2, color=Class)) +
+  geom_point(size=1.25) +
+  guides(colour=guide_legend(override.aes=list(size=6))) +
+  xlab("") + ylab("") +
+  ggtitle("t-SNE 2D Embedding of 'Classe' Outcome") +
+  theme_light(base_size=20) +
+  theme(axis.text.x=element_blank(),
+        axis.text.y=element_blank())
+print(g)
+bstSparse <- xgboost(data = as.matrix(data[,2:31]), label = data$active, max.depth = 20, eta = 1, nthread = 4, nround = 20, objective = "binary:logistic")
+
+bst <- xgboost(data = as.matrix(data), label = data$active, max.depth = 2, eta = 1, nthread = 2, nround = 2, objective = "binary:logistic", verbose = 1)
+
+###############
+num.class = 2
+param <- list("objective" = "binary:logistic",    # binary classification 
+              "num_class" = num.class,    # number of classes 
+              "eval_metric" = "merror",    # evaluation metric 
+              "nthread" = 8,   # number of threads to be used 
+              "max_depth" = 16,    # maximum depth of tree 
+              "eta" = 1,    # step size shrinkage 
+              "gamma" = 0,    # minimum loss reduction 
+              "subsample" = 1,    # part of data instances to grow tree 
+              "colsample_bytree" = 1,  # subsample ratio of columns when constructing each tree 
+              "min_child_weight" = 12  # minimum sum of instance weight needed in a child 
+)
+nround.cv = 200
+system.time( bst.cv <- xgb.cv(param=param, data=as.matrix(data[,2:31]), label=data$active,nfold=4, nrounds=nround.cv, prediction=TRUE, verbose=FALSE) )
+tail(bst.cv$dt)
+# get CV's prediction decoding
+pred.cv = matrix(bst.cv$pred, nrow=length(bst.cv$pred)/num.class, ncol=num.class)
+# confusion matrix
+y = as.matrix(as.integer(active))
+confusionMatrix(data=pred.cv, active)
+
+
+
+
+
+
+
+
+
+
+############# PCA
+m.pca <- prcomp(res[,4:33], scale. = T)
+
+library("factoextra")
+fviz_screeplot(pc, ncp=10)
+
+predicted.pca <- data.frame(active = res$active, m.pca$x)
+m.logit <- glm(active ~ ., data = predicted.pca, family=binomial(logit))
+summary(m.logit)
+
+############ Predictions
+pc.predict <- predict(m.pca, newdata = res[res$name=="Capsula",4:33])
+pred <- predict(m.logit, newdata = data.frame(pc.predict), type = "response")
+pred
+
+library(caret)
+vi <- varImp(m.logit)
+vi <- rownames(vi)[order(-vi)][1:10]
+vi
+
+library(glmulti)
+full.formula <- as.formula(paste0("active ~ ", paste(vi, sep = " ", collapse = "+")))
+
+full.formula <- as.formula(paste0("active ~ ", paste(names(m.logit$coefficients)[2:21], sep = " ", collapse = "+")))
+g1 <- glmulti(full.formula, data = predicted.pca, level = 2, method = "d",family = binomial(link = logit))
+
+g1 <- glmulti(full.formula,
+              data = predicted.pca,level = 2, method = "g", crit = "aic", confsetsize = 5, plotty = F, report = F, maxsize = 1e9,
+              fitfunction = "glm", family = binomial(link = logit))
+
+t.formula <- g1@formulas[[1]]
+m.logit2 <- glm(t.formula, data = predicted.pca, family = binomial(link=logit))
+summary(m.logit2)
+predict(m.logit2, newdata = data.frame(pc.predict), type = "response") # my result
+predict.glm(m.logit2, newdata = data.frame(pc.predict), type = "response")
+
+
+################## ROC analysis
+library(ROCR)
+library(MKmisc)
+library(caret); library(e1071)
+library(ggplot2); library(DAAG)
+
+predicted <- predict(m.logit2, newdata = predicted.pca, type = "response")
+
+#predicted[is.na(predicted)] <- 0
+prob <- prediction(predicted, res2$active)
+tprfpr <- performance(prob, "tpr", "fpr")
+tpr <- unlist(slot(tprfpr, "y.values"))
+fpr <- unlist(slot(tprfpr, "x.values"))
+roc <- data.frame(tpr, fpr)
+cutoffs <- data.frame(cut=tprfpr@alpha.values[[1]], fpr=tprfpr@x.values[[1]], tpr=tprfpr@y.values[[1]])
+acc.perf = performance(prob, measure = "acc"); plot(acc.perf)
+ind = which.max( slot(acc.perf, "y.values")[[1]] )
+acc = slot(acc.perf, "y.values")[[1]][ind]
+cutoff = slot(acc.perf, "x.values")[[1]][ind]
+sp = performance(prob, measure = "spec"); se = performance(prob, measure = "sens")
+auc = performance(prob, measure = "auc"); f = performance(prob, measure = "f")
+print(c(accuracy=acc, f=f@y.values[[1]][ind], sp = sp@y.values[[1]][ind], se = se@y.values[[1]][ind], auc = auc@y.values[[1]][1], cutoff = cutoff))
+
+##### ggplot2
+ggplot(roc) + geom_line(aes(x = fpr, y = tpr), size = 1.8, color = "green") + 
+  geom_abline(intercept = 0, slope = 1, colour = "gray") +
+  ggtitle("ROC-curve for logistic model") +
+  ylab("Sensitivity") + 
+  xlab("1 - Specificity") +
+  theme(plot.title = element_text(size = rel(1.5)),
+        axis.title = element_text(size = rel(1.5)))
+
+# CV of models
+CVbinary(m.pc2) # as optimal choosed first model
+
+##### k-fold
+ctrl <- trainControl(method = "repeatedcv", number = 10, savePredictions = TRUE)
+mod_fit <- train(t.formula,  data=data.frame(pc.predict), method="glm", family="binomial", trControl = ctrl, tuneLength = 5)
+pred = predict(mod_fit, newdata=data.frame(pc.predict)) #for good testing needed replace d for testing set :(
+confusionMatrix(data=pred, res$active)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 ################
 # ordinal logistic regression
