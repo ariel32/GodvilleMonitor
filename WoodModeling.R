@@ -51,14 +51,14 @@ res$a.sailor      <- sapply(res$name, function(x) FUN = as.numeric(median(d$a.sa
 
 
 ############# DATA CLEANING
-res <- res[complete.cases(res),]
-res <- res[-which(is.nan(res$arena.rate) | is.infinite(res$arena.rate)),]
+#res <- res[complete.cases(res),]
+#res <- res[-which(is.nan(res$arena.rate) | is.infinite(res$arena.rate)),]
 
 ########## XGBOOST
 library(xgboost); library(corrplot); library(Rtsne); library(ggplot2); library(caret)
 dm <- xgb.DMatrix(data = data.matrix(res[,4:33]), label = res[,3], missing = NA)
 param <- list("objective" = "binary:logistic",    # binary classification 
-              "num_class" = 2,    # number of classes 
+              "num_class" = 1,    # number of classes 
               "eval_metric" = "auc",    # evaluation metric 
               "nthread" = 8,   # number of threads to be used 
               "max_depth" = 16,    # maximum depth of tree 
@@ -68,20 +68,17 @@ param <- list("objective" = "binary:logistic",    # binary classification
               "colsample_bytree" = 1,  # subsample ratio of columns when constructing each tree 
               "min_child_weight" = 12  # minimum sum of instance weight needed in a child 
 )
-bst = xgboost(data = dm, params = param, nrounds = 120)
+bst = xgboost(data = dm, params = param, nrounds = 80)
+
+predict(bst, newdata = data.matrix(res[which(res$name=="Capsula"),4:33]))
+
 pred = predict(bst, dm)
-cv.res <- xgb.cv(data = dm, nfold = 5, label = label, nrounds = 20,
+
+cv.res <- xgb.cv(data = dm, nfold = 5, label = res$active, nrounds = 20,
                  objective = "binary:logistic", eval_metric = "auc", prediction=TRUE)
+cv.res
 
-
-
-################### CONFUSION MATRIX WITH CARET?
-# get CV's prediction decoding
-num.class = 2
-pred.cv = matrix(cv.res$pred, nrow=length(cv.res$pred)/num.class, ncol=num.class)
-# confusion matrix
-y = as.matrix(as.integer(label))
-confusionMatrix(data=pred.cv, active)
+confusionMatrix(data=cv.res, res$active)
 
 ################### ROC
 library(ROCR)
@@ -89,10 +86,8 @@ library(MKmisc)
 library(caret); library(e1071)
 library(ggplot2); library(DAAG)
 
-predicted <- predict(bst, newdata = dm)[1]
-
-#predicted[is.na(predicted)] <- 0
-prob <- prediction(predicted, label)
+predicted <- predict(bst, newdata = dm)
+prob <- prediction(predicted, res$active)
 tprfpr <- performance(prob, "tpr", "fpr")
 tpr <- unlist(slot(tprfpr, "y.values"))
 fpr <- unlist(slot(tprfpr, "x.values"))
@@ -116,7 +111,7 @@ ggplot(roc) + geom_line(aes(x = fpr, y = tpr), size = 1.8, color = "green") +
         axis.title = element_text(size = rel(1.5)))
 
 # CV of models
-CVbinary(m.pc2) # as optimal choosed first model
+CVbinary(bst) # as optimal choosed first model
 
 ##### k-fold
 ctrl <- trainControl(method = "repeatedcv", number = 10, savePredictions = TRUE)
@@ -124,20 +119,6 @@ mod_fit <- train(t.formula,  data=data.frame(pc.predict), method="glm", family="
 pred = predict(mod_fit, newdata=data.frame(pc.predict)) #for good testing needed replace d for testing set :(
 confusionMatrix(data=pred, res$active)
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-data <- res[,3:33]
 corrplot.mixed(cor(data[,2:31]), lower="circle", upper="color", tl.pos="lt", diag="n", order="hclust", hclust.method="complete")
 
 tsne = Rtsne(as.matrix(data), check_duplicates=FALSE, pca=TRUE, perplexity=30, theta=0.5, dims=2)
