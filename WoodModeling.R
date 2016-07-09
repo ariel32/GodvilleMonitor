@@ -51,12 +51,79 @@ res$a.sailor      <- sapply(res$name, function(x) FUN = as.numeric(median(d$a.sa
 
 
 ############# DATA CLEANING
-res <- res[complete.cases(res),]
-res <- res[-which(is.nan(res$arena.rate) | is.infinite(res$arena.rate)),]
+#res <- res[complete.cases(res),]
+#res <- res[-which(is.nan(res$arena.rate) | is.infinite(res$arena.rate)),]
 
 ########## XGBOOST
 library(xgboost); library(corrplot); library(Rtsne); library(ggplot2); library(caret)
-data <- res[,3:33]
+dm <- xgb.DMatrix(data = data.matrix(res[,4:33]), label = res[,3], missing = NA)
+param <- list("objective" = "binary:logistic",    # binary classification 
+              "num_class" = 1,    # number of classes 
+              "eval_metric" = "auc",    # evaluation metric 
+              "nthread" = 8,   # number of threads to be used 
+              "max_depth" = 16,    # maximum depth of tree 
+              "eta" = 1,    # step size shrinkage 
+              "gamma" = 0,    # minimum loss reduction 
+              "subsample" = 1,    # part of data instances to grow tree 
+              "colsample_bytree" = 1,  # subsample ratio of columns when constructing each tree 
+              "min_child_weight" = 12  # minimum sum of instance weight needed in a child 
+)
+bst = xgboost(data = dm, params = param, nrounds = 80)
+xgb.plot.tree(feature_names = names(res[,4:33]),model = bst)
+
+importance_matrix <- xgb.importance(names(res[,4:33]), model = bst)
+xgb.plot.importance(importance_matrix)
+
+
+predict(bst, newdata = data.matrix(res[which(res$name=="Capsula"),4:33]))
+
+pred = predict(bst, dm)
+
+cv.res <- xgb.cv(data = dm, nfold = 5, label = res$active, nrounds = 20,
+                 objective = "binary:logistic", eval_metric = "auc", prediction=TRUE)
+cv.res
+
+confusionMatrix(data=cv.res, res$active)
+
+################### ROC
+library(ROCR)
+library(MKmisc)
+library(caret); library(e1071)
+library(ggplot2); library(DAAG)
+
+predicted <- predict(bst, newdata = dm)
+prob <- prediction(predicted, res$active)
+tprfpr <- performance(prob, "tpr", "fpr")
+tpr <- unlist(slot(tprfpr, "y.values"))
+fpr <- unlist(slot(tprfpr, "x.values"))
+roc <- data.frame(tpr, fpr)
+cutoffs <- data.frame(cut=tprfpr@alpha.values[[1]], fpr=tprfpr@x.values[[1]], tpr=tprfpr@y.values[[1]])
+acc.perf = performance(prob, measure = "acc"); plot(acc.perf)
+ind = which.max( slot(acc.perf, "y.values")[[1]] )
+acc = slot(acc.perf, "y.values")[[1]][ind]
+cutoff = slot(acc.perf, "x.values")[[1]][ind]
+sp = performance(prob, measure = "spec"); se = performance(prob, measure = "sens")
+auc = performance(prob, measure = "auc"); f = performance(prob, measure = "f")
+print(c(accuracy=acc, f=f@y.values[[1]][ind], sp = sp@y.values[[1]][ind], se = se@y.values[[1]][ind], auc = auc@y.values[[1]][1], cutoff = cutoff))
+
+##### ggplot2
+ggplot(roc) + geom_line(aes(x = fpr, y = tpr), size = 1.8, color = "green") + 
+  geom_abline(intercept = 0, slope = 1, colour = "gray") +
+  ggtitle("ROC-curve for logistic model") +
+  ylab("Sensitivity") + 
+  xlab("1 - Specificity") +
+  theme(plot.title = element_text(size = rel(1.5)),
+        axis.title = element_text(size = rel(1.5)))
+
+# CV of models
+CVbinary(bst) # as optimal choosed first model
+
+##### k-fold
+ctrl <- trainControl(method = "repeatedcv", number = 10, savePredictions = TRUE)
+mod_fit <- train(t.formula,  data=data.frame(pc.predict), method="glm", family="binomial", trControl = ctrl, tuneLength = 5)
+pred = predict(mod_fit, newdata=data.frame(pc.predict)) #for good testing needed replace d for testing set :(
+confusionMatrix(data=pred, res$active)
+
 corrplot.mixed(cor(data[,2:31]), lower="circle", upper="color", tl.pos="lt", diag="n", order="hclust", hclust.method="complete")
 
 tsne = Rtsne(as.matrix(data), check_duplicates=FALSE, pca=TRUE, perplexity=30, theta=0.5, dims=2)
