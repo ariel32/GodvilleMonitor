@@ -111,10 +111,11 @@ monitor <- function(god, res.return = FALSE) {
   Sys.sleep(5)
 }
 source("res.function.R")
-res <- res.function()
+res.initial <- res.function()
 
 ###################################################
 # XGBOOST
+res <- res.initial
 res[is.na(res)] <- -999
 label = res$active
 res <- res[,4:34]
@@ -132,42 +133,32 @@ param <- list("objective" = "binary:logistic",    # binary classification
               "colsample_bytree" = 1,  # subsample ratio of columns when constructing each tree 
               "min_child_weight" = 12  # minimum sum of instance weight needed in a child 
 )
-m.xgboost = xgboost(data = xgb.data.matrix, params = param, nrounds = 5000)
+xgb.model = xgboost(data = xgb.data.matrix, params = param, nrounds = 200)
 
-#xgb.plot.tree(feature_names = names(res[,4:33]),model = m.xgboost)
-#importance_matrix <- xgb.importance(names(res[,4:33]), model = m.xgboost)
-#xgb.plot.importance(importance_matrix)
-
-nekonekoneko <- monitor("Nekonekoneko", res.return = TRUE)
-capsula <- monitor("Capsula", res.return = TRUE)
-
-predict(m.xgboost, newdata = data.matrix(nekonekoneko))
-predict(m.xgboost, newdata = data.matrix(capsula))
-
-#pred = predict(m.xgboost, data.matrix(res[,4:33]))
-
-cv.res <- xgb.cv(data = xgb.data.matrix, nfold = 8, label = label, nrounds = 100, objective = "binary:logistic", eval_metric = "auc", prediction=TRUE)
-cv.res$pred
+xgb.model.cv <- xgb.cv(data = xgb.data.matrix, nfold = 8, label = label, nrounds = 100, objective = "binary:logistic", eval_metric = "auc", prediction=TRUE)
+xgb.model.cv$pred
 # confusion matrix
-cv.res$pred <- ifelse(as.numeric(cv.res$pred) > 0.5, 1, 0)
-confusionMatrix(data=cv.res$pred, label)
+xgb.model.cv$pred <- ifelse(as.numeric(xgb.model.cv$pred) > 0.5, 1, 0)
+confusionMatrix(data=xgb.model.cv$pred, label)
 
 ##### choosing parameters with caret
-xgb_grid = expand.grid(nrounds = 10,eta = 1,max_depth = c(2, 4, 6, 8, 10),gamma = c(0,1),colsample_bytree=1,min_child_weight=12)
-xgb_ctrl <- trainControl(method = "cv", number = 10, savePredictions = TRUE)
-m.xgboost.cv <- train(x = res, y = as.factor(label), method="xgbTree", trControl = xgb_ctrl, tuneGrid = xgb_grid)
-pred = predict(m.xgboost.cv, newdata=res) #for good testing needed replace d for testing set :(
+xgb.grid = expand.grid(nrounds = 1000, eta = 1, max_depth = c(2, 4, 6, 8, 10), gamma = c(0,1), colsample_bytree=1, min_child_weight=12)
+xgb.ctrl <- trainControl(method = "cv", number = 10, savePredictions = TRUE)
+
+xgb.model.caret <- train(x = res, y = as.factor(label), method="xgbTree", trControl = xgb.ctrl, tuneGrid = xgb.grid)
+
+pred = predict(xgb.model.caret, newdata=res) #for good testing needed replace d for testing set :(
 confusionMatrix(data=pred, label)
 
-predict(m.xgboost.cv, newdata = data.matrix(nekonekoneko), type = "prob")
-predict(m.xgboost.cv, newdata = data.matrix(capsula), type = "prob")
+newdata <- monitor("Nekonekoneko", res.return = TRUE)
+newdata <- monitor("Capsula", res.return = TRUE)
+newdata <- monitor("Крень", res.return = TRUE)
 
-newdata = monitor("Крень", res.return = TRUE)
-predict(m.xgboost.cv, newdata = data.matrix(newdata), type = "prob")
+predict(xgb.model.caret, newdata = data.matrix(newdata), type = "prob")
 
 ################### ROC
-predicted <- predict(m.xgboost, newdata = xgb.data.matrix)
-prob <- prediction(predicted, label)
+predicted <- predict(xgb.model.caret, newdata = res.initial[,4:34])
+prob <- prediction(as.numeric(predicted), res.initial[,3])
 tprfpr <- performance(prob, "tpr", "fpr")
 tpr <- unlist(slot(tprfpr, "y.values"))
 fpr <- unlist(slot(tprfpr, "x.values"))
@@ -191,4 +182,11 @@ ggplot(roc) + geom_line(aes(x = fpr, y = tpr), size = 1.8, color = "green") +
         axis.title = element_text(size = rel(1.5)))
 
 
+
+
+
+
+#xgb.plot.tree(feature_names = names(res[,4:33]),model = m.xgboost)
+#importance_matrix <- xgb.importance(names(res[,4:33]), model = m.xgboost)
+#xgb.plot.importance(importance_matrix)
 
