@@ -1,3 +1,4 @@
+# SUMMARIZATION BY 888 GODS
 res.function = function() {
   d = read.csv("DungeonsDB.csv", sep = ";", stringsAsFactor = F)
   godnames = unique(d$godname)
@@ -22,6 +23,8 @@ res.function = function() {
   res$gold_approx <- sapply(res$name, function(x) FUN = median(d$gold_approx[d$godname==x]))
   res$level <- sapply(res$name, function(x) FUN = median(d$level[d$godname==x]))
   res$age <- sapply(res$name, function(x) FUN = median(d$age[d$godname==x]))
+  res$monsters_killed <- sapply(res$name, function(x) FUN = median(as.numeric(d$monsters_killed[d$godname==x])))
+  res$pet_level <- sapply(res$name, function(x) FUN = median(as.numeric(d$pet_level[d$godname==x]), na.rm = T))
   res$equip.rate    <- sapply(res$name, function(x) FUN = median(d$equip.level[d$godname==x], na.rm = T)/median(d$level[d$godname==x], na.rm = T))
   res$might         <- sapply(res$name, function(x) FUN = median(d$p.might[d$godname==x]))
   res$templehood    <- sapply(res$name, function(x) FUN = median(d$p.templehood[d$godname==x]))
