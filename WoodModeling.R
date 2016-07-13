@@ -1,4 +1,4 @@
-library("xgboost"); library("ggplot2"); library("caret"); library("ROCR"); library("magrittr")
+library("xgboost"); library("ggplot2"); library("caret"); library("ROCR")
 
 d = read.csv("DungeonsDB.csv", sep = ";", stringsAsFactor = F)
 godnames = unique(d$godname)
@@ -11,14 +11,14 @@ coeff <- sapply(godnames, FUN = function(x) {
 res.initial = data.frame(name = godnames, woods = round(as.numeric(coeff*60*60*24),2), stringsAsFactors = F)
 res.initial$active = ifelse(res.initial$woods > median(res.initial$woods, na.rm = T), 1, 0)
 
-d %>% dplyr::left_join(res.initial, c("godname" = "name")) %>% dplyr::mutate(arena.rate = arena.wins/arena.loses, equip.rate = equip.level/level)-> res
-res[is.na(res)] <- -999
-label = res$active
-res %>% dplyr::select(-c(godname, time, woods, active)) -> res
+library("plyr"); library("dplyr")
+
+d %>% left_join(res.initial, c("godname" = "name")) %>% mutate(arena.rate = arena.wins/arena.loses, equip.rate = equip.level/level) -> res
+label = res$active; res %<>% select(-c(godname, time, woods, active))
 
 ###################################################
 # XGBOOST
-xgb.data.matrix <- xgb.DMatrix(data = data.matrix(res), label = label, missing = -999)
+xgb.data.matrix <- xgb.DMatrix(data = data.matrix(res), label = label, missing = NA)
 
 param <- list("objective" = "binary:logistic",    # binary classification 
               "num_class" = 1,    # number of classes 
@@ -31,7 +31,7 @@ param <- list("objective" = "binary:logistic",    # binary classification
               "colsample_bytree" = 1,  # subsample ratio of columns when constructing each tree 
               "min_child_weight" = 12  # minimum sum of instance weight needed in a child 
 )
-xgb.model = xgboost(data = xgb.data.matrix, params = param, nrounds = 200)
+xgb.model = xgboost(data = xgb.data.matrix, params = param, nrounds = 20)
 
 xgb.cv.data <- xgb.cv(data = xgb.data.matrix, nfold = 8, label = label, nrounds = 100, objective = "binary:logistic", eval_metric = "auc", prediction=TRUE)
 xgb.cv.data$pred
