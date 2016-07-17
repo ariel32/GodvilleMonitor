@@ -91,20 +91,24 @@ monitor <- function(god, res.return = FALSE) {
                  deaths,arena.wins,arena.loses,p.might,p.templehood,p.gladiatorship,p.mastery,p.taming,p.survival,p.savings,p.alignment)
       a <- cbind(a,achievment)
       #### return result if we just monitoring one god
-      if(res.return == TRUE) return(data.frame(gold_approx = a$gold_approx, level = a$level, equip.level = a$equip.level,
-                                               alignment = a$alignment, pet_level = a$pet_level, age = a$age, monsters_killed = a$monsters_killed,
-                                               deaths = a$deaths, arena.wins = a$arena.wins, arena.loses = a$arena.loses,
-                                               p.might = a$p.might, p.templehood = a$p.templehood, p.gladiatorship = a$p.gladiatorship,
-                                               p.mastery = a$p.mastery, p.taming = a$p.taming, p.survival = a$p.survival, p.savings = a$p.savings,
-                                               p.alignment = a$p.alignment,
-                                               a.lamb = a$a.lamb, a.imp = a$a.imp, a.martyr = a$a.martyr, a.favorite = a$a.favorite, a.scoffer = a$a.scoffer,
-                                               a.warrior = a$a.warrior, a.maniac = a$a.maniac, a.champion = a$a.champion, a.tutor = a$a.tutor,
-                                               a.hunter = a$a.hunter, a.plunderer = a$a.plunderer, a.careerist = a$a.careerist, a.breeder = a$a.breeder,
-                                               a.architect = a$a.architect, a.shipbuilder = a$a.shipbuilder, a.sailor = a$a.sailor, a.fowler = a$a.fowler,
-                                               ### Secondary features
-                                               arena.rate = as.numeric(as.character(a$arena.wins))/as.numeric(as.character(a$arena.loses)),
-                                               equip.rate = as.numeric(as.character(a$equip.level))/as.numeric(as.character(a$level))
-                                               ))
+      if(res.return == TRUE) {
+        df <- data.frame(gold_approx = a$gold_approx, level = a$level, equip.level = a$equip.level,
+                         alignment = a$alignment, pet_level = a$pet_level, age = a$age, monsters_killed = a$monsters_killed,
+                         deaths = a$deaths, arena.wins = a$arena.wins, arena.loses = a$arena.loses,
+                         p.might = a$p.might, p.templehood = a$p.templehood, p.gladiatorship = a$p.gladiatorship,
+                         p.mastery = a$p.mastery, p.taming = a$p.taming, p.survival = a$p.survival, p.savings = a$p.savings,
+                         p.alignment = a$p.alignment,
+                         a.lamb = a$a.lamb, a.imp = a$a.imp, a.martyr = a$a.martyr, a.favorite = a$a.favorite, a.scoffer = a$a.scoffer,
+                         a.warrior = a$a.warrior, a.maniac = a$a.maniac, a.champion = a$a.champion, a.tutor = a$a.tutor,
+                         a.hunter = a$a.hunter, a.plunderer = a$a.plunderer, a.careerist = a$a.careerist, a.breeder = a$a.breeder,
+                         a.architect = a$a.architect, a.shipbuilder = a$a.shipbuilder, a.sailor = a$a.sailor, a.fowler = a$a.fowler,
+                         ### Secondary features
+                         arena.rate = as.numeric(as.character(a$arena.wins))/as.numeric(as.character(a$arena.loses)),
+                         equip.rate = as.numeric(as.character(a$equip.level))/as.numeric(as.character(a$level))
+                         )
+        indx <- sapply(df, is.factor)
+        df[indx] <- lapply(df[indx], function(x) as.numeric(as.character(x)))
+        return(df)}
       if(file.exists("DungeonsDB.csv")) {
         write.table(a, "DungeonsDB.csv", sep = ";", col.names = F, append = T, row.names = F)
       } else {
