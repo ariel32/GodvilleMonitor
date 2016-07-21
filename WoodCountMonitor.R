@@ -93,7 +93,8 @@ monitor <- function(god, res.return = FALSE) {
       #### return result if we just monitoring one god
       if(res.return == TRUE) {
         df <- data.frame(gold_approx = a$gold_approx, level = a$level, equip.level = a$equip.level,
-                         alignment = a$alignment, pet_level = a$pet_level, age = a$age, monsters_killed = a$monsters_killed,
+                         alignment = a$alignment, wood_cnt = a$wood_cnt, health = a$health, pet_level = a$pet_level,
+                         age = a$age, monsters_killed = a$monsters_killed,
                          deaths = a$deaths, arena.wins = a$arena.wins, arena.loses = a$arena.loses,
                          p.might = a$p.might, p.templehood = a$p.templehood, p.gladiatorship = a$p.gladiatorship,
                          p.mastery = a$p.mastery, p.taming = a$p.taming, p.survival = a$p.survival, p.savings = a$p.savings,
@@ -122,6 +123,12 @@ monitor <- function(god, res.return = FALSE) {
 ### god names for monitoring
 load("godnames")
 sapply(godnames, monitor)
+
+################# TOPS
+load("godnames.tops")
+sapply(gsub(" ", replacement = "%20", godnames.tops), monitor)
+
+
 #### ОБРАБОТКА ОШИБОК
 if(file.exists("log.csv")) {
   err = read.csv("log.csv", sep = ";", header = F, stringsAsFactors = F)
