@@ -1,18 +1,35 @@
+# rm(list = ls())
 library("xgboost"); library("ggplot2"); library("caret"); library("ROCR"); library("jsonlite"); library("XML"); library("httr")
+library("doParallel"); library("plyr"); library("dplyr"); library("magrittr")
+#registerDoParallel(detectCores())
+options(mc.cores = detectCores())
 
 d = read.csv("DungeonsDB.csv", sep = ";", stringsAsFactor = F)
 godnames = unique(d$godname)
 
-coeff <- sapply(godnames, FUN = function(x) {
+coeff <- data.frame(t(sapply(godnames, FUN = function(x) {
   data = d[d$godname==x,]
-  as.numeric(lm(wood_cnt ~ time, data = data)$coefficients[2])
-} )
+  l.model <- lm(wood_cnt ~ time, data = data)
+  slope <- as.numeric(l.model$coefficients[2])
+  r.squared <- summary(l.model)$r.squared
+  return(cbind(slope, r.squared))
+  })))
+names(coeff) <- c("slope", "r.squared")
 
-res.initial = data.frame(name = godnames, woods = round(as.numeric(coeff*60*60*24),2), stringsAsFactors = F)
+
+########################################################################################
+# rewrite with pipe? It must returns vector coeff
+
+d %>% select(godname, wood_cnt, time) %>%
+  group_by(godname) %>% do(model = lm(wood_cnt ~ time, data = .)) %>%
+  mutate(slope = .$coefficients[2], r.squared = summary(.)$r.squared) %>% select(-model)
+
+########################################################################################
+
+
+res.initial = data.frame(name = godnames, woods = round(as.numeric(coeff$slope*60*60*24),2), stringsAsFactors = F)
 #res.initial$active = ifelse(res.initial$woods > median(res.initial$woods, na.rm = T), 1, 0)
 res.initial$active = ifelse(res.initial$woods > 2.5, 1, 0)
-
-library("plyr"); library("dplyr"); library("magrittr")
 
 d %>% left_join(res.initial, c("godname" = "name")) %>% mutate(arena.rate = arena.wins/arena.loses, equip.rate = equip.level/level) -> res
 res$active -> label; res %<>% select(-c(godname, time, woods, active)) %>% mutate_each(funs(as.numeric))
@@ -64,19 +81,18 @@ inTrain <- sample(dim(res)[1], dim(res)[1]/4*3, replace = F)
 #dtest  <- xgb.DMatrix(data = data.matrix(res[-inTrain, ]), label = factor(label[-inTrain], labels = c("no", "yes")), missing = NA)
 
 ##### choosing parameters with caret
-xgb.grid <- expand.grid(nrounds = 100,
-                        max_depth = c(2,4,6,8,10,14),
-                        eta = c(0.1, 0.05, 0.01, 0.001, 0.0001),
-                        gamma = c(0, 1), colsample_bytree=c(1, 2, 4, 8, 16),
-                        min_child_weight=c(1,2,4,8,12))
-#xgb.ctrl <- xgb.train(param, dtrain, 100, watchlist)
+xgb.grid <- expand.grid(nrounds = 1000,
+                        max_depth = c(2,4,6,8,10),
+                        eta = c(1, 0.5, 0.1, 0.05, 0.01, 0.001, 0.0001),
+                        gamma = 1, colsample_bytree = 0.6,
+                        min_child_weight = 1)
 
-xgb.ctrl = trainControl(method = "repeatedcv", repeats = 1, number = 3, 
+xgb.ctrl = trainControl(method = "repeatedcv", repeats = 1, number = 5, 
                         summaryFunction = twoClassSummary,
                         classProbs = TRUE,
                         allowParallel=T)
 
-xgb.tune <- train(x = data.matrix(res[inTrain, ]),
+xgb.tune2 <- train(x = data.matrix(res[inTrain, ]),
                   y = factor(label[inTrain], labels = c("no", "yes")),
                   method="xgbTree",
                   trControl=xgb.ctrl,
@@ -84,7 +100,7 @@ xgb.tune <- train(x = data.matrix(res[inTrain, ]),
                   verbose=T,
                   metric="Kappa",
                   nthread = 3)
-save(xgb.tune, file = "xgb.tune2")
+save(xgb.tune2, file = "xgb.tune2")
 #importance_matrix <- xgb.importance(names(res), model = xgb.tune$finalModel)
 #xgb.plot.importance(importance_matrix)
 pred = predict(xgb.tune, newdata=res[-inTrain, ])
@@ -94,6 +110,7 @@ newdata <- monitor("Nekonekoneko", res.return = TRUE) # YES - 100%
 newdata <- monitor("Capsula", res.return = TRUE)      # YES - 100%
 newdata <- monitor("Сангдир", res.return = TRUE)      # NO  - 100%
 newdata <- monitor("Curandero", res.return = TRUE)    # NO  - 100%
+newdata <- monitor("Uunium", res.return = TRUE)
 predict(xgb.tune, newdata, type='prob')[, 'yes']
 
 
