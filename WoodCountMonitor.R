@@ -55,7 +55,7 @@ monitor <- function(god, res.return = FALSE) {
       deaths          = html$characteristics$V2[7]
       arena.wins      = as.numeric(strsplit(html$characteristics$V2[8], split = " / ")[[1]][1])
       arena.loses     = as.numeric(strsplit(html$characteristics$V2[8], split = " / ")[[1]][2])
-      p.might         = html$panteons$V2[html$panteons$V1 == "Мощи"]
+      p.might         = ifelse(length(html$panteons$V2[html$panteons$V1 == "Мощи"]) == 0, 0, html$panteons$V2[html$panteons$V1 == "Мощи"])
       p.templehood    = html$panteons$V2[html$panteons$V1 == "Храмовничества"]
       p.gladiatorship = ifelse(length(html$panteons$V2[html$panteons$V1 == "Гладиаторства"]) == 0, 0, html$panteons$V2[html$panteons$V1 == "Гладиаторства"])
       p.mastery       = html$panteons$V2[html$panteons$V1 == "Мастерства"]
@@ -99,10 +99,12 @@ monitor <- function(god, res.return = FALSE) {
                          p.might = a$p.might, p.templehood = a$p.templehood, p.gladiatorship = a$p.gladiatorship,
                          p.mastery = a$p.mastery, p.taming = a$p.taming, p.survival = a$p.survival, p.savings = a$p.savings,
                          p.alignment = a$p.alignment,
-                         a.lamb = a$a.lamb, a.imp = a$a.imp, a.martyr = a$a.martyr, a.favorite = a$a.favorite, a.scoffer = a$a.scoffer,
-                         a.warrior = a$a.warrior, a.maniac = a$a.maniac, a.champion = a$a.champion, a.tutor = a$a.tutor,
-                         a.hunter = a$a.hunter, a.plunderer = a$a.plunderer, a.careerist = a$a.careerist, a.breeder = a$a.breeder,
-                         a.architect = a$a.architect, a.shipbuilder = a$a.shipbuilder, a.sailor = a$a.sailor, a.fowler = a$a.fowler,
+                         a.lamb = achievment$a.lamb, a.imp = achievment$a.imp, a.martyr = achievment$a.martyr, a.favorite = achievment$a.favorite,
+                         a.scoffer = achievment$a.scoffer, a.warrior = achievment$a.warrior, a.maniac = achievment$a.maniac,
+                         a.champion = achievment$a.champion, a.tutor = achievment$a.tutor, a.hunter = achievment$a.hunter,
+                         a.plunderer = achievment$a.plunderer, a.careerist = achievment$a.careerist, a.breeder = achievment$a.breeder,
+                         a.architect = achievment$a.architect, a.shipbuilder = achievment$a.shipbuilder, a.sailor = achievment$a.sailor,
+                         a.fowler = achievment$a.fowler,
                          ### Secondary features
                          arena.rate = as.numeric(as.character(a$arena.wins))/as.numeric(as.character(a$arena.loses)),
                          equip.rate = as.numeric(as.character(a$equip.level))/as.numeric(as.character(a$level))
