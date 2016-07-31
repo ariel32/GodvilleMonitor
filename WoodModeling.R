@@ -5,6 +5,9 @@ library("doParallel"); library("plyr"); library("dplyr"); library("magrittr")
 options(mc.cores = detectCores())
 
 d = read.csv("DungeonsDB.csv", sep = ";", stringsAsFactor = F)
+
+# It is works!
+########################################################################################
 godnames = unique(d$godname)
 
 coeff <- data.frame(t(sapply(godnames, FUN = function(x) {
@@ -17,12 +20,13 @@ coeff <- data.frame(t(sapply(godnames, FUN = function(x) {
 names(coeff) <- c("slope", "r.squared")
 
 
-########################################################################################
+
 # rewrite with pipe? It must returns vector coeff
+########################################################################################
 
 d %>% select(godname, wood_cnt, time) %>%
   group_by(godname) %>% do(model = lm(wood_cnt ~ time, data = .)) %>%
-  mutate(slope = .$coefficients[2], r.squared = summary(.)$r.squared) %>% select(-model)
+  mutate(slope = model$coefficients[2], r.squared = summary(model)$r.squared) %>% select(-model)
 
 ########################################################################################
 
