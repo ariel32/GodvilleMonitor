@@ -6,32 +6,11 @@ options(mc.cores = detectCores())
 
 d = read.csv("DungeonsDB.csv", sep = ";", stringsAsFactor = F)
 
-# It is works!
-########################################################################################
-godnames = unique(d$godname)
-
-coeff <- data.frame(t(sapply(godnames, FUN = function(x) {
-  data = d[d$godname==x,]
-  l.model <- lm(wood_cnt ~ time, data = data)
-  slope <- as.numeric(l.model$coefficients[2])
-  r.squared <- summary(l.model)$r.squared
-  return(cbind(slope, r.squared))
-  })))
-names(coeff) <- c("slope", "r.squared")
-
-
-
-# rewrite with pipe? It must returns vector coeff
-########################################################################################
-
 d %>% select(godname, wood_cnt, time) %>% group_by(godname) %>%
   do(model = summary(lm(wood_cnt ~ time, data = .))) %>% ungroup %>%
   mutate(slope = sapply(model, "[[", c(4,2)), r.squared = sapply(model, "[[", "r.squared")) %>% select(-model) -> gods.stats
 
-########################################################################################
-
-
-res.initial = data.frame(name = godnames, woods = round(as.numeric(coeff$slope*60*60*24),2), stringsAsFactors = F)
+res.initial = data.frame(name = gods.stats$godname, woods = round(as.numeric(gods.stats$slope*60*60*24),2), stringsAsFactors = F)
 #res.initial$active = ifelse(res.initial$woods > median(res.initial$woods, na.rm = T), 1, 0)
 res.initial$active = ifelse(res.initial$woods > 2.5, 1, 0)
 
