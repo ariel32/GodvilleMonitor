@@ -24,9 +24,9 @@ names(coeff) <- c("slope", "r.squared")
 # rewrite with pipe? It must returns vector coeff
 ########################################################################################
 
-d %>% select(godname, wood_cnt, time) %>%
-  group_by(godname) %>% do(model = lm(wood_cnt ~ time, data = .)) %>%
-  mutate(slope = model$coefficients[2], r.squared = summary(model)$r.squared) %>% select(-model)
+d %>% select(godname, wood_cnt, time) %>% group_by(godname) %>%
+  do(model = summary(lm(wood_cnt ~ time, data = .))) %>% ungroup %>%
+  mutate(slope = sapply(model, "[[", c(4,2)), r.squared = sapply(model, "[[", "r.squared")) %>% select(-model) -> gods.stats
 
 ########################################################################################
 
