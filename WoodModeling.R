@@ -10,6 +10,9 @@ d %>% select(godname, wood_cnt, time) %>% group_by(godname) %>%
   do(model = summary(lm(wood_cnt ~ time, data = .))) %>% ungroup %>%
   mutate(slope = sapply(model, "[[", c(4,2)), r.squared = sapply(model, "[[", "r.squared")) %>% select(-model) -> gods.stats
 
+# d %>% select(godname, wood_cnt, time) %>% group_by(godname) %>% 
+#   do_(model = summary(lm(wood_cnt ~ time, data = .))) %>% mutate(q=model)
+
 res.initial = data.frame(name = gods.stats$godname, woods = round(as.numeric(gods.stats$slope*60*60*24),2), stringsAsFactors = F)
 #res.initial$active = ifelse(res.initial$woods > median(res.initial$woods, na.rm = T), 1, 0)
 res.initial$active = ifelse(res.initial$woods > 2.5, 1, 0)
@@ -86,7 +89,7 @@ xgb.tune2 <- train(x = data.matrix(res[inTrain, ]),
 save(xgb.tune2, file = "xgb.tune2")
 #importance_matrix <- xgb.importance(names(res), model = xgb.tune$finalModel)
 #xgb.plot.importance(importance_matrix)
-pred = predict(xgb.tune, newdata=res[-inTrain, ])
+pred = predict(xgb.tune2, newdata=res[-inTrain, ])
 confusionMatrix(data=pred, factor(label[-inTrain], labels = c("no", "yes")))
 
 newdata <- monitor("Nekonekoneko", res.return = TRUE) # YES - 100%
@@ -94,7 +97,8 @@ newdata <- monitor("Capsula", res.return = TRUE)      # YES - 100%
 newdata <- monitor("Сангдир", res.return = TRUE)      # NO  - 100%
 newdata <- monitor("Curandero", res.return = TRUE)    # NO  - 100%
 newdata <- monitor("Uunium", res.return = TRUE)
-predict(xgb.tune, newdata, type='prob')[, 'yes']
+newdata <- monitor("Фpанк", res.return = TRUE)
+predict(xgb.tune2, newdata, type='prob')[, 'yes']
 
 
 ################### ROC
